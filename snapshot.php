@@ -5,8 +5,8 @@
 $projBase='/home/jsewell/foldingCoinPlatform/';
 $projBin='bin';
 
-include($projBase.$projBin.'includes/functions.php');
-include($projBase.$projBin.'includes/classes.php');
+include($projBase.$projBin.'/includes/functions.php');
+include($projBase.$projBin.'/includes/classes.php');
 include($projBase.'/config/db.php');
 
 $runStart=time();

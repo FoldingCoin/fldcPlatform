@@ -111,6 +111,7 @@ class snapshotRecord{
 		$this->fahSHA256=hash('SHA256',$normalizedFolder->fahTeam.$normalizedFolder->fahName);
 		$this->cumulativeCredits=$normalizedFolder->cumulativeCredits;
 	}
+	
 }
 
 

@@ -19,14 +19,74 @@ function populateAssets(){
 			$lastPaidTimestamp=$assetsRow['lastPaidTimestamp'];
 			if($lastPaidTimestamp==''){$lastPaidTimestamp=0;}
 			$emailAddress=$assetsRow['emailAddress'];
+			$logoUrl=$assetsRow['logoUrl'];
 			
-			$thisAsset=new platformAsset($assetName,$awardingPeriod,$tokensPerPeriod,$teamNumber,$lastPaidTimestamp,$emailAddress);
+			$thisAsset=new platformAsset($assetName,$awardingPeriod,$tokensPerPeriod,$teamNumber,$lastPaidTimestamp,$emailAddress,$logoUrl);
 
 			$platformAssets[]=$thisAsset;
 		}
 	}
 	return($platformAssets);
 }
+
+
+function getMostRecentSnapshot($assetName,$mode){
+	$mostRecentSnapshot=1;
+	$db=dbConnect();
+	$recentSnapQuery="SELECT * FROM fldcPlatform.platformCredits WHERE assetName = '$assetName' AND mode = '$mode' ORDER BY snapshotTimestamp DESC LIMIT 1";
+	if ($recentSnapResults=$db->query($recentSnapQuery)) {
+		while($recentSnapRow=$recentSnapResults->fetch_assoc()){
+			$thisAsset='';
+			$snapshotTimestamp=$recentSnapRow['snapshotTimestamp'];
+			//echo "assetName $assetName snapshotTimestamp $snapshotTimestamp\n";
+		}
+	}
+
+	$mostRecentSnapshot=$snapshotTimestamp;
+	return($mostRecentSnapshot);
+}
+
+function populateCurrentSnapRecords($mostRecentSnapshot,$assetName,$mode){
+	$currentSnapRecords='';
+	$db=dbConnect();
+	$currentSnapQuery="SELECT * FROM fldcPlatform.platformCredits WHERE assetName = '$assetName' AND snapshotTimestamp = '$mostRecentSnapshot' AND mode = '$mode'";
+	if ($currentSnapResults=$db->query($currentSnapQuery)) {
+		while($currentSnapRow=$currentSnapResults->fetch_assoc()){
+			$snaptype=$currentSnapRow['snaptype'];
+			$address=$currentSnapRow['address'];
+			$friendlyName=$currentSnapRow['friendlyName'];
+			$fahName=$currentSnapRow['fahName'];
+			$fahTeam=$currentSnapRow['fahTeam'];
+			$fahSHA256=$currentSnapRow['fahSHA256'];
+			$cumulativeCredits=$currentSnapRow['cumulativeCredits'];
+
+			$normalizedFolder= new normalizedFolder();
+			$normalizedFolder->assetName=$assetName;
+			$normalizedFolder->snaptype=$snaptype;
+			$normalizedFolder->address=$address;
+			$normalizedFolder->friendlyName=$friendlyName;
+			$normalizedFolder->fahName=$fahName;
+			$normalizedFolder->fahTeam=$fahTeam;
+			$normalizedFolder->cumulativeCredits=$cumulativeCredits;
+			//echo "in populateCurrentSnapRecords...\n";
+			//var_dump($normalizedFolder);
+			$currentSnapRecord=new snapshotRecord($assetName,$normalizedFolder,$mostRecentSnapshot,$mode);
+			//var_dump($currentSnapRecord);
+			
+			
+			//echo "\n";
+			$currentSnapRecords[]=$currentSnapRecord;
+		}
+	}
+
+	return($currentSnapRecords);
+}
+
+
+
+
+
+
 
 
 

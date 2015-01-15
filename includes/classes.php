@@ -9,14 +9,16 @@ class platformAsset{
 	var $teamNumber;
 	var $lastPaidTimestamp;
 	var $emailAddress;
+	var $logoUrl;
 
-	function __construct($assetName,$awardingPeriod,$tokensPerPeriod,$teamNumber,$lastPaidTimestamp,$emailAddress){
+	function __construct($assetName,$awardingPeriod,$tokensPerPeriod,$teamNumber,$lastPaidTimestamp,$emailAddress,$logoUrl){
 		$this->assetName=$assetName;
 		$this->awardingPeriod=$awardingPeriod;
 		$this->tokensPerPeriod=$tokensPerPeriod;
 		$this->teamNumber=$teamNumber;
 		$this->lastPaidTimestamp=$lastPaidTimestamp;
 		$this->emailAddress=$emailAddress;
+		$this->logoUrl=$logoUrl;
 	}
 
 	function assetNameSet($assetName){
@@ -36,6 +38,9 @@ class platformAsset{
 	}
 	function emailAddressSet($emailAddress){
 		$this->emailAddress=$emailAddress;
+	}
+	function logoUrlSet($logoUrl){
+		$this->logoUrl=$logoUrl;
 	}
 }
 
@@ -114,7 +119,52 @@ class snapshotRecord{
 	
 }
 
+class payoutRecord{
+	var $snapshotTimestamp;
+	var $assetName;
+	var $address;
+	var $friendlyName;
+	var $fahName;
+	var $fahTeam;
+	var $fahSHA256;
+	var $cumulativeCredits;
+	var $mode;
+	var $periodCredits;
+	var $periodTokens;
 
+	function __construct($snapshotTimestamp,$assetName,$normalizedFolder,$mode,$periodCredits,$periodTokens){
+		$this->snapshotTimestamp=$snapshotTimestamp;
+		$this->assetName=$assetName;
+		$this->address=$normalizedFolder->address;
+		$this->friendlyName=$normalizedFolder->friendlyName;
+		$this->fahName=$normalizedFolder->fahName;
+		$this->fahTeam=$normalizedFolder->fahTeam;
+		$this->fahSHA256=hash('SHA256',$normalizedFolder->fahTeam.$normalizedFolder->fahName);
+		$this->cumulativeCredits=$normalizedFolder->cumulativeCredits;
+		$this->mode=$mode;
+		$this->periodCredits=$periodCredits;
+		$this->periodTokens=$periodTokens;
+	}
+	
+	function insertPayout(){
+		$insertResult='start';
+		$db=dbConnect();
+		if ($stmt = $db->prepare("INSERT INTO fldcPlatform.platformPayouts (assetName,payoutTimestamp,fahSHA256,address,friendlyName,fahName,fahTeam,payoutCredits,payoutTokens,cumulativeCredits,mode) VALUES (?,?,?,?,?,?,?,?,?,?,?)")) {
+			/* bind parameters for markers */
+			$stmt->bind_param("sissssiidis", $this->assetName,$this->snapshotTimestamp,$this->fahSHA256,$this->address,$this->friendlyName,$this->fahName,$this->fahTeam,$this->periodCredits,$this->periodTokens,$this->cumulativeCredits,$this->mode);
+			/* execute query */
+			$stmt->execute();
+			//var_dump($stmt);
+			/* close statement */
+			$stmt->close();
+		}
+		return($insertResult);
+	}
+
+
+
+
+}
 
 
 

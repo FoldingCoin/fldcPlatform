@@ -20,6 +20,8 @@ foreach($platformAssets as $platformAsset){
 	$payoutRecords='';	
 	$assetName=$platformAsset->assetName;
 	$mostRecentSnapshot=getMostRecentSnapshot($assetName,$mode);
+	
+	
 	$payoutRecords=populatePayoutRecords($assetName,$mostRecentSnapshot,$mode);
 	//var_dump($payoutRecords);
 	if($payoutRecords!=""){
@@ -40,7 +42,6 @@ function writePayoutReport($platformAsset,$payoutRecords,$mostRecentSnapshot,$re
 	
 	$reportYYYYMMDD=date("Ymd",$mostRecentSnapshot);
 	$reportFileName=$reportsDir.'/'.$reportYYYYMMDD.'-'."payoutReport.html";
-	echo "reportFileName $reportFileName\n";
 	
 	
 	//write the HTML for the folder credits/coins report
@@ -94,7 +95,6 @@ function writePayoutReport($platformAsset,$payoutRecords,$mostRecentSnapshot,$re
 
 function writeStatsFile($assetName,$payoutRecords,$mostRecentSnapshot,$reportsDir,$mode){
 	$statFileName=$reportsDir."/stats.txt";
-	echo "statFileName $statFileName\n";
 	$statCode='';
 	$activeFolders=0;
 	$allFolders=0;
@@ -138,7 +138,6 @@ function populatePayoutRecords($assetName,$mostRecentSnapshot,$mode){
 	$db=dbConnect();
 	//find all the payouts for this timestamp and asset
 	$payoutsQuery="SELECT * FROM fldcPlatform.platformPayouts WHERE payoutTimestamp = $mostRecentSnapshot AND assetName = '$assetName' AND mode = '$mode' ORDER BY payoutCredits DESC";
-	echo "$payoutsQuery\n";
 	if ($payoutsResults=$db->query($payoutsQuery)) {
 		while($payoutsRow=$payoutsResults->fetch_assoc()){
 			$assetName=$payoutsRow['assetName'];
@@ -184,19 +183,16 @@ function createHtmlIndexes($platformAsset,$reportsDir){
 	$files=scandir($reportsDir);
 	foreach($files as $file){
 		if(!is_dir($file) AND preg_match("/html/",$file) AND !preg_match("/reports/",$file) AND !preg_match("/index/",$file)){
-			echo "doing $file\n";
 			$yyyy=substr($file,0,4);
 			$mm=substr($file,4,2);
 			$dd=substr($file,6,2);
 			$unixtime=mktime(8,0,5,$mm,$dd,$yyyy);
 			$month=date("F",$unixtime);
 
-			$assetIndexHtml=$assetIndexHtml."<p><a href=".$reportsDir."/$file>Payouts $month $dd, $yyyy</a></p>\n";
+			$assetIndexHtml=$assetIndexHtml."<p><a href=$file>Payouts $month $dd, $yyyy</a></p>\n";
 		}
 	}
 	$assetIndexHtml=$assetIndexHtml."</body></html>\n";
-	echo "$assetIndexHtml\n";
-	echo "assetIndexFileName $assetIndexFileName\n";
 	$assetIndexFileHandle=fopen($assetIndexFileName,"w");
 	fwrite($assetIndexFileHandle,$assetIndexHtml);
 	fclose($assetIndexFileHandle);

@@ -24,7 +24,7 @@ foreach($platformAssets as $platformAsset){
 	//determine most current snapshot timestamp
 	$mostRecentSnapshot=getMostRecentSnapshot($assetName,$mode);
 	//echo "mostRecentSnapshot $mostRecentSnapshot ".date("c",$mostRecentSnapshot)."\n";
-
+	
 	$payoutPlusMinus=$awardingPeriod/5400;
 	$mostRecentPayout=getMostRecentPayout($assetName,$mode);
 	echo "mostRecentSnapshot $mostRecentSnapshot mostRecentPayout $mostRecentPayout\n";
@@ -99,14 +99,14 @@ $mostRecentPayout<($mostRecentSnapshot-$payoutPlusMinus)
 //now render CSV
 foreach($csv as $assetName => $csvLines){
 	$db=dbConnect();
-	echo "CSV for $assetName...\n";
+	//echo "CSV for $assetName...\n";
 	$csvEmailBody='';
 	$csvEmailBody=$csvEmailBody."<html><body><p>$assetName Payouts for ".date("c",$payoutTimestamp)."</p>\n<p>Valid Payouts</p>\n<pre>\n";
 	foreach($csvLines as $csvLine){
 		$csvEmailBody=$csvEmailBody.$csvLine;	
 	}
 	$csvEmailBody=$csvEmailBody."</pre>\n</body></html>";
-	echo "$csvEmailBody";
+	//echo "$csvEmailBody";
 	
 	if(preg_match("/live/",$mode)){
 		$assetEmailQuery="SELECT * FROM fldcPlatform.platformAssets WHERE assetName = '$assetName'";
@@ -128,7 +128,7 @@ foreach($csv as $assetName => $csvLines){
 		$subject='Test Mode ';
 	}
 	
-	$subject = $subject."$assetName Daily Distribution ".date("c",$payoutTimestamp);
+	$subject = $subject."$assetName Dev Server Cron Daily Distribution ".date("c",$payoutTimestamp);
 	$fromEmail = "jsewell@foldingcoin.net";
 	$headers = 'From: ' . $fromEmail . "\r\n" . 'X-Mailer: PHP/' . phpversion();
 	$headers .= 'MIME-Version: 1.0' . "\r\n";

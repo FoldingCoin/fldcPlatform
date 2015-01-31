@@ -23,52 +23,74 @@ foreach($platformAssets as $platformAsset){
 	echo "Now processing ".$assetName."\n";
 	//determine most current snapshot timestamp
 	$mostRecentSnapshot=getMostRecentSnapshot($assetName,$mode);
-	echo "mostRecentSnapshot $mostRecentSnapshot ".date("c",$mostRecentSnapshot)."\n";
-	$currentSnapRecords=populateCurrentSnapRecords($mostRecentSnapshot,$assetName,$mode);
-	//var_dump($currentSnapRecords);
-	foreach($currentSnapRecords as $currentSnapRecord){
-		$normalizedFolder= new normalizedFolder();
-		$normalizedFolder->assetName=$currentSnapRecord->assetName;
-		$normalizedFolder->snaptype=$currentSnapRecord->snaptype;
-		$normalizedFolder->address=$currentSnapRecord->address;
-		$normalizedFolder->friendlyName=$currentSnapRecord->friendlyName;
-		$normalizedFolder->fahName=$currentSnapRecord->fahName;
-		$normalizedFolder->fahTeam=$currentSnapRecord->fahTeam;
-		$normalizedFolder->cumulativeCredits=$currentSnapRecord->cumulativeCredits;
-		$folderFahSHA256=$currentSnapRecord->fahSHA256;
-		$previousSnapRecord=getPreviousSnapRecord($folderFahSHA256,$assetName,$normalizedFolder,$mostRecentSnapshot,$awardingPeriod,$mode);
-		//echo "dumping currentSnapRecord\n";
-		//var_dump($currentSnapRecord);
-		//echo "dumping previousSnapRecord\n";
-		//var_dump($previousSnapRecord);
-		
-		$periodCredits=$currentSnapRecord->cumulativeCredits-$previousSnapRecord->cumulativeCredits;
-		$allFolderCredits=$allFolderCredits+$periodCredits;
-		//this is a temporary placeholder, as we will calculate the full token payout after getting all the deltas
-		$periodTokens=0;
-		$payoutTimestamp=$currentSnapRecord->snapshotTimestamp;
-		
-		$payoutRecords[$folderFahSHA256]=new payoutRecord($payoutTimestamp,$assetName,$normalizedFolder,$mode,$periodCredits,$periodTokens);
-	}
-	
-	$tokensPerFahCredit=$platformAsset->tokensPerPeriod/$allFolderCredits;
-	echo "For this snapshot, 1 FAH credit gets you $tokensPerFahCredit tokens of $assetName\n";
-	
-	foreach($payoutRecords as $payoutRecord){
-		$payoutFahSHA256=$payoutRecord->fahSHA256;
-		$payoutTokens=$tokensPerFahCredit*$payoutRecord->periodCredits;
-		$payoutTokens=sprintf("%01.8f",$payoutTokens);
-		$payoutRecord->periodTokens=$payoutTokens;
-		
-		if($payoutRecord->periodTokens > 0){
-			$csv[$platformAsset->assetName][$payoutFahSHA256]=$payoutRecord->address.",".sprintf("%01.8f",$payoutRecord->periodTokens)."\n";
+	//echo "mostRecentSnapshot $mostRecentSnapshot ".date("c",$mostRecentSnapshot)."\n";
+
+	$payoutPlusMinus=$awardingPeriod/5400;
+	$mostRecentPayout=getMostRecentPayout($assetName,$mode);
+	echo "mostRecentSnapshot $mostRecentSnapshot mostRecentPayout $mostRecentPayout\n";
+	//exit();
+
+/*
+
+$mostRecentPayout<($mostRecentSnapshot-$payoutPlusMinus)
+
+($mostRecentSnapshot>(($mostRecentPayout+$awardingPeriod)+$payoutPlusMinus)) OR
+($mostRecentSnapshot>(($mostRecentPayout+$awardingPeriod)-$payoutPlusMinus))
+
+
+*/
+
+
+
+	if(
+		($mostRecentSnapshot>(($mostRecentPayout+$awardingPeriod)+$payoutPlusMinus)) OR
+		($mostRecentSnapshot>(($mostRecentPayout+$awardingPeriod)-$payoutPlusMinus))
+	){//THIS IS WHERE to check if the awarding period has gone by
+		$currentSnapRecords=populateCurrentSnapRecords($mostRecentSnapshot,$assetName,$mode);
+		//var_dump($currentSnapRecords);
+		foreach($currentSnapRecords as $currentSnapRecord){
+			$normalizedFolder= new normalizedFolder();
+			$normalizedFolder->assetName=$currentSnapRecord->assetName;
+			$normalizedFolder->snaptype=$currentSnapRecord->snaptype;
+			$normalizedFolder->address=$currentSnapRecord->address;
+			$normalizedFolder->friendlyName=$currentSnapRecord->friendlyName;
+			$normalizedFolder->fahName=$currentSnapRecord->fahName;
+			$normalizedFolder->fahTeam=$currentSnapRecord->fahTeam;
+			$normalizedFolder->cumulativeCredits=$currentSnapRecord->cumulativeCredits;
+			$folderFahSHA256=$currentSnapRecord->fahSHA256;
+			$previousSnapRecord=getPreviousSnapRecord($folderFahSHA256,$assetName,$normalizedFolder,$mostRecentSnapshot,$awardingPeriod,$mode);
+			//echo "dumping currentSnapRecord\n";
+			//var_dump($currentSnapRecord);
+			//echo "dumping previousSnapRecord\n";
+			//var_dump($previousSnapRecord);
+			
+			$periodCredits=$currentSnapRecord->cumulativeCredits-$previousSnapRecord->cumulativeCredits;
+			$allFolderCredits=$allFolderCredits+$periodCredits;
+			//this is a temporary placeholder, as we will calculate the full token payout after getting all the deltas
+			$periodTokens=0;
+			$payoutTimestamp=$currentSnapRecord->snapshotTimestamp;
+			
+			$payoutRecords[$folderFahSHA256]=new payoutRecord($payoutTimestamp,$assetName,$normalizedFolder,$mode,$periodCredits,$periodTokens);
 		}
-		
-		$payoutInsertResult=$payoutRecord->insertPayout();
-		
-		
-	}
 	
+		$tokensPerFahCredit=$platformAsset->tokensPerPeriod/$allFolderCredits;
+		echo "For this snapshot, 1 FAH credit gets you ".sprintf("%01.8f",$tokensPerFahCredit)." tokens of $assetName\n";
+		
+		foreach($payoutRecords as $payoutRecord){
+			$payoutFahSHA256=$payoutRecord->fahSHA256;
+			$payoutTokens=$tokensPerFahCredit*$payoutRecord->periodCredits;
+			$payoutTokens=sprintf("%01.8f",$payoutTokens);
+			$payoutRecord->periodTokens=$payoutTokens;
+			
+			if($payoutRecord->periodTokens > 0){
+				$csv[$platformAsset->assetName][$payoutFahSHA256]=$payoutRecord->address.",".sprintf("%01.8f",$payoutRecord->periodTokens)."\n";
+			}
+			
+			$payoutInsertResult=$payoutRecord->insertPayout();
+			
+			
+		}
+	}
 	
 	
 	
@@ -79,7 +101,7 @@ foreach($csv as $assetName => $csvLines){
 	$db=dbConnect();
 	echo "CSV for $assetName...\n";
 	$csvEmailBody='';
-	$csvEmailBody=$csvEmailBody."<html><body><p>FoldingCoin Payouts for ".date("c",$payoutTimestamp)."</p>\n<p>Valid Payouts</p>\n<pre>\n";
+	$csvEmailBody=$csvEmailBody."<html><body><p>$assetName Payouts for ".date("c",$payoutTimestamp)."</p>\n<p>Valid Payouts</p>\n<pre>\n";
 	foreach($csvLines as $csvLine){
 		$csvEmailBody=$csvEmailBody.$csvLine;	
 	}
@@ -119,7 +141,17 @@ foreach($csv as $assetName => $csvLines){
 
 
 
-
+function getMostRecentPayout($assetName,$mode){
+	$mostRecentPayout='';
+	$db=dbConnect();
+	$mostRecentPayoutQuery="SELECT * FROM fldcPlatform.platformPayouts WHERE assetName = '$assetName' AND mode = '$mode' ORDER BY payoutTimestamp DESC LIMIT 1";
+	if ($mostRecentPayoutResults=$db->query($mostRecentPayoutQuery)) {
+		while($mostRecentPayoutRow=$mostRecentPayoutResults->fetch_assoc()){
+			$mostRecentPayout=$mostRecentPayoutRow['payoutTimestamp'];
+		}
+	}
+	return($mostRecentPayout);
+}
 
 
 

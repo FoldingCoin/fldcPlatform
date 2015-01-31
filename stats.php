@@ -17,14 +17,17 @@ echo "Start ".date("c",$runStart)."\n";
 $platformAssets=populateAssets();
 
 foreach($platformAssets as $platformAsset){
+	$payoutRecords='';	
 	$assetName=$platformAsset->assetName;
 	$mostRecentSnapshot=getMostRecentSnapshot($assetName,$mode);
 	$payoutRecords=populatePayoutRecords($assetName,$mostRecentSnapshot,$mode);
-	echo "Now Processing Stats for $assetName\n";
 	//var_dump($payoutRecords);
-	writePayoutReport($platformAsset,$payoutRecords,$mostRecentSnapshot,$reportsDir,$mode,$runStart);
-	writeStatsFile($assetName,$payoutRecords,$mostRecentSnapshot,$reportsDir,$mode);
-	
+	if($payoutRecords!=""){
+		echo "Now Processing Stats for $assetName\n";
+		writePayoutReport($platformAsset,$payoutRecords,$mostRecentSnapshot,$reportsDir.$assetName,$mode,$runStart);
+		writeStatsFile($assetName,$payoutRecords,$mostRecentSnapshot,$reportsDir.$assetName,$mode);
+		createHtmlIndexes($platformAsset,$reportsDir.$assetName);
+	}
 	
 	
 	
@@ -36,7 +39,7 @@ function writePayoutReport($platformAsset,$payoutRecords,$mostRecentSnapshot,$re
 	$assetLogoUrl=$platformAsset->logoUrl;
 	
 	$reportYYYYMMDD=date("Ymd",$mostRecentSnapshot);
-	$reportFileName=$reportsDir.$assetName.'-'.$reportYYYYMMDD.'-'."payoutReport.html";
+	$reportFileName=$reportsDir.'/'.$reportYYYYMMDD.'-'."payoutReport.html";
 	echo "reportFileName $reportFileName\n";
 	
 	
@@ -58,7 +61,7 @@ function writePayoutReport($platformAsset,$payoutRecords,$mostRecentSnapshot,$re
 	}
 	
 	$tokensPerCredit=$reportTotalTokens/$reportTotalCredits;
-	$reportHtml=$reportHtml."<p>In this awarding period, 1 folding credit is worth $tokensPerCredit $assetName tokens.</p>\n";
+	$reportHtml=$reportHtml."<p>In this awarding period, 1 folding credit is worth ".number_format($tokensPerCredit,8)." $assetName tokens.</p>\n";
 
 	$reportHtml=$reportHtml."<p>Payouts:</p>\n<table border = 1><tr><th>Folder Name</th><th>Folder Team</th><th>Folder Address</th><th>Credits Folded This Period</th><th>Percentage</th><th>$assetName Paid</th></tr>\n";
 	//then go through the payouts one at a time
@@ -69,14 +72,14 @@ function writePayoutReport($platformAsset,$payoutRecords,$mostRecentSnapshot,$re
 		$friendlyName=$payoutRecord->friendlyName;
 		$fahTeam=$payoutRecord->fahTeam;
 		
-		$folderPct=sprintf("%01.2f",($periodTokens/$reportTotalTokens)*100);
+		$folderPct=number_format((($periodTokens/$reportTotalTokens)*100),2);
 		$reportTotalPct=$reportTotalPct+$folderPct;
 		
 		if($periodTokens>0){
-			$reportHtml=$reportHtml."<tr><td>$friendlyName</td><td>$fahTeam</td><td>$address</td><td>$periodCredits</td><td>$folderPct%</td><td>$periodTokens</td></tr>\n";
+			$reportHtml=$reportHtml."<tr><td>$friendlyName</td><td>$fahTeam</td><td>$address</td><td>".number_format($periodCredits)."</td><td>$folderPct%</td><td>".number_format($periodTokens,8)."</td></tr>\n";
 		}
 	}
-	$reportHtml=$reportHtml."<tr><td></td><td>Totals</td><td>$reportTotalCredits</td><td>".round($reportTotalPct,0)."</td><td>".sprintf("%01.0f",$reportTotalTokens)."</td>\n";
+	$reportHtml=$reportHtml."<tr><td></td><td></td><td>Totals</td><td>".number_format($reportTotalCredits)."</td><td>".round($reportTotalPct,0)."</td><td>".number_format(round($reportTotalTokens,0))."</td>\n";
 	$reportHtml=$reportHtml."</table>\n";
 	$reportHtml=$reportHtml."<p>This report generated ".date("c",$runStart)."</p>\n";
 	$reportHtml=$reportHtml."</body></html>\n";
@@ -90,8 +93,8 @@ function writePayoutReport($platformAsset,$payoutRecords,$mostRecentSnapshot,$re
 
 
 function writeStatsFile($assetName,$payoutRecords,$mostRecentSnapshot,$reportsDir,$mode){
-	$statFileName=$reportsDir.$assetName.'-'."stats.txt";
-	echo "$statFileName\n";
+	$statFileName=$reportsDir."/stats.txt";
+	echo "statFileName $statFileName\n";
 	$statCode='';
 	$activeFolders=0;
 	$allFolders=0;
@@ -109,12 +112,12 @@ function writeStatsFile($assetName,$payoutRecords,$mostRecentSnapshot,$reportsDi
 	
 	$statCode=$statCode."|<b>All $assetName Folders</b>\n";
 	$statCode=$statCode."Folders: |$activeFolders ($allFolders)\n";
-	$statCode=$statCode."24 hr. Credits: |".number_format($totalFoldedCredits)."\n";
+	$statCode=$statCode."Awarding Period Credits: |".number_format($totalFoldedCredits)."\n";
 	$statCode=$statCode."Credits: |".number_format($allCredits)."";
 
-	echo "=begin stats====\n";
-	echo "$statCode\n";
-	echo "=end stats====\n";
+	//echo "=begin stats====\n";
+	//echo "$statCode\n";
+	//echo "=end stats====\n";
 	$statFileHandle=fopen($statFileName,"w");
 	fwrite($statFileHandle,$statCode);
 	fclose($statFileHandle);
@@ -160,11 +163,45 @@ function populatePayoutRecords($assetName,$mostRecentSnapshot,$mode){
 			$payoutRecords[]=new payoutRecord($snapshotTimestamp,$assetName,$normalizedFolder,$mode,$payoutCredits,$payoutTokens);
 		}
 	}
-	return($payoutRecords);
+	if(isset($payoutRecords)){
+		return($payoutRecords);
+	}else{
+		return('');
+	}
 }
 
 
+function createHtmlIndexes($platformAsset,$reportsDir){
+	$assetName=$platformAsset->assetName;
+	$logoUrl=$platformAsset->logoUrl;
+	
+	$assetIndexFileName=$reportsDir."/index.html";
+	$assetIndexHtml='';
+	$assetIndexHtml=$assetIndexHtml."<html><head><title>$assetName :: Distribution History</title></head>
+<body><h2>$assetName :: Distribution Summary</h2>
+<img src=$logoUrl>\n";
 
+	$files=scandir($reportsDir);
+	foreach($files as $file){
+		if(!is_dir($file) AND preg_match("/html/",$file) AND !preg_match("/reports/",$file) AND !preg_match("/index/",$file)){
+			echo "doing $file\n";
+			$yyyy=substr($file,0,4);
+			$mm=substr($file,4,2);
+			$dd=substr($file,6,2);
+			$unixtime=mktime(8,0,5,$mm,$dd,$yyyy);
+			$month=date("F",$unixtime);
+
+			$assetIndexHtml=$assetIndexHtml."<p><a href=".$reportsDir."/$file>Payouts $month $dd, $yyyy</a></p>\n";
+		}
+	}
+	$assetIndexHtml=$assetIndexHtml."</body></html>\n";
+	echo "$assetIndexHtml\n";
+	echo "assetIndexFileName $assetIndexFileName\n";
+	$assetIndexFileHandle=fopen($assetIndexFileName,"w");
+	fwrite($assetIndexFileHandle,$assetIndexHtml);
+	fclose($assetIndexFileHandle);
+
+}
 
 
 ?>

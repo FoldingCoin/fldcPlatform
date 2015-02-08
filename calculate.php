@@ -25,6 +25,10 @@ foreach($platformAssets as $platformAsset){
 	$mostRecentSnapshot=getMostRecentSnapshot($assetName,$mode);
 	//echo "mostRecentSnapshot $mostRecentSnapshot ".date("c",$mostRecentSnapshot)."\n";
 	
+	///date debug
+	//$mostRecentSnapshot=1423286401;
+	///date debug
+	
 	$payoutPlusMinus=$awardingPeriod/5400;
 	$mostRecentPayout=getMostRecentPayout($assetName,$mode);
 	echo "mostRecentSnapshot $mostRecentSnapshot mostRecentPayout $mostRecentPayout\n";
@@ -72,7 +76,10 @@ $mostRecentPayout<($mostRecentSnapshot-$payoutPlusMinus)
 			
 			$payoutRecords[$folderFahSHA256]=new payoutRecord($payoutTimestamp,$assetName,$normalizedFolder,$mode,$periodCredits,$periodTokens);
 		}
-	
+		
+		if($allFolderCredits==0){
+			$allFolderCredits=.00000001;
+		}
 		$tokensPerFahCredit=$platformAsset->tokensPerPeriod/$allFolderCredits;
 		echo "For this snapshot, 1 FAH credit gets you ".sprintf("%01.8f",$tokensPerFahCredit)." tokens of $assetName\n";
 		
@@ -128,7 +135,7 @@ foreach($csv as $assetName => $csvLines){
 		$subject='Test Mode ';
 	}
 	
-	$subject = $subject."$assetName Dev Server Cron Daily Distribution ".date("c",$payoutTimestamp);
+	$subject = $subject."$assetName Merged Folding Production Daily Distribution ".date("c",$payoutTimestamp);
 	$fromEmail = "jsewell@foldingcoin.net";
 	$headers = 'From: ' . $fromEmail . "\r\n" . 'X-Mailer: PHP/' . phpversion();
 	$headers .= 'MIME-Version: 1.0' . "\r\n";

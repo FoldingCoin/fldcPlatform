@@ -79,9 +79,9 @@ class normalizedFolder{
 			if(preg_match("/\_$currentAsset\_/",$name)){
 				$this->assetName=$platformAsset->assetName;
 				$this->snaptype='anyTeam';
-				list($freindlyName,$address)=explode("_".$currentAsset."_",$name);
+				list($friendlyName,$address)=explode("_".$currentAsset."_",$name);
 				$this->address=$address;
-				$this->friendlyName=$freindlyName;
+				$this->friendlyName=$friendlyName;
 				$this->fahName=$name;
 				$this->fahTeam=$team;
 				$this->cumulativeCredits=$credits;
@@ -89,6 +89,21 @@ class normalizedFolder{
 			}
 		}
 	}
+
+	function allAssetsFinder($line,$platformAsset){
+		list($name,$credits,$workUnits,$team)=explode("\t",$line);
+		$this->assetName=$platformAsset->assetName;
+		$this->snaptype='anyTeam';
+		list($friendlyName,$address)=explode("_"."ALL"."_",$name);
+		$this->address=$address;
+		$this->friendlyName=$friendlyName;
+		$this->fahName=$name;
+		$this->fahTeam=$team;
+		$this->cumulativeCredits=$credits;
+		echo "for an ALL folder...\n";
+		var_dump($this);
+	}
+	
 }
 
 class snapshotRecord{

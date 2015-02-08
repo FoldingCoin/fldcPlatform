@@ -20,7 +20,9 @@ foreach($platformAssets as $platformAsset){
 	$payoutRecords='';	
 	$assetName=$platformAsset->assetName;
 	$mostRecentSnapshot=getMostRecentSnapshot($assetName,$mode);
-	
+	///
+	//$mostRecentSnapshot=1423286401;
+	///
 	
 	$payoutRecords=populatePayoutRecords($assetName,$mostRecentSnapshot,$mode);
 	//var_dump($payoutRecords);
@@ -61,6 +63,9 @@ function writePayoutReport($platformAsset,$payoutRecords,$mostRecentSnapshot,$re
 		$reportTotalTokens=$reportTotalTokens+$payoutRecord->periodTokens;
 	}
 	
+	if($reportTotalCredits==0){
+		$reportTotalCredits=.00000001;
+	}
 	$tokensPerCredit=$reportTotalTokens/$reportTotalCredits;
 	$reportHtml=$reportHtml."<p>In this awarding period, 1 folding credit is worth ".number_format($tokensPerCredit,8)." $assetName tokens.</p>\n";
 
@@ -73,6 +78,9 @@ function writePayoutReport($platformAsset,$payoutRecords,$mostRecentSnapshot,$re
 		$friendlyName=$payoutRecord->friendlyName;
 		$fahTeam=$payoutRecord->fahTeam;
 		
+		if($reportTotalTokens==0){
+			$reportTotalTokens=0.00000001;
+		}
 		$folderPct=number_format((($periodTokens/$reportTotalTokens)*100),2);
 		$reportTotalPct=$reportTotalPct+$folderPct;
 		

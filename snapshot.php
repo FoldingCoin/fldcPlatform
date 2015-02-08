@@ -21,12 +21,17 @@ $todayYYYYMMDD=date("Ymd");
 if(preg_match("/test/",$mode)){
 	//$todayYYYYMMDD='20141231';
 }
+
+///date debug
+//$todayYYYYMMDD=20150207;
+///date debug
+
 echo "run $todayYYYYMMDD\n";
 
 //Download the files from FAH
 foreach($statsUrls as $statsUrl){
 	list($discard,$localFile)=explode('edu/',$statsUrl);
-	$localFile=$projBase.'/FAHdata/'.$todayYYYYMMDD.$localFile;
+	$localFile=$projBase.'FAHdata/'.$todayYYYYMMDD.$localFile;
 	echo "$localFile\n";
 
 	if(!file_exists($localFile)){
@@ -63,6 +68,8 @@ while (!feof($bz)) {
 	//  count the lines and subtract one, as the array starts counting at 0
 	$lastFileChunk=$lines[count($lines)-1];
 	foreach($lines as $line){
+		$normalizedFolders='';
+		//echo "processing $line\n";
 		//don't process the lastFileChunk
 		if($line!=$lastFileChunk){
 			if(!preg_match("/ /",$line)){
@@ -71,19 +78,44 @@ while (!feof($bz)) {
 				//if we don't have a valid bitcoin address, see if it's an ownTeam folder
 				if(!checkAddress($normalizedFolder->address)){
 					$normalizedFolder->ownTeamFinder($line,$platformAssets);
+					if(checkAddress($normalizedFolder->address)){
+						$normalizedFolders[]=$normalizedFolder;
+					}
 				}
 				//if we don't have a valid bitcoin address, it wasn't an ownTeam folder so try for an anyTeam folder
 				if(!checkAddress($normalizedFolder->address)){
 					$normalizedFolder->anyTeamFinder($line,$platformAssets);
+					if(checkAddress($normalizedFolder->address)){
+						$normalizedFolders[]=$normalizedFolder;
+					}
 				}
-				//if we have a valid bitcoin address, prepare a snapshot and insert it
-				if(checkAddress($normalizedFolder->address)){
-					$folderRecords=buildSnapshotRecords($normalizedFolder,$insertTimestamp,$mode);
-					foreach($folderRecords as $folderRecord){
-						$insertRecords[]=$folderRecord;
+				
+				//if we still don't have a valid bitcoin address, it could be an _ALL_ folder
+				if(!checkAddress($normalizedFolder->address) AND preg_match("/\_ALL\_/",$line)){
+					foreach($platformAssets as $platformAsset){
+						$normalizedFolder=new normalizedFolder();
+						$normalizedFolder->allAssetsFinder($line,$platformAsset);
+						if(checkAddress($normalizedFolder->address)){
+							$normalizedFolders[]=$normalizedFolder;
+						}
 					}
 				}
 
+				if($normalizedFolders!=''){
+					foreach($normalizedFolders as $normalizedFolder){
+						//if we have a valid bitcoin address, prepare a snapshot and insert it
+						if(checkAddress($normalizedFolder->address)){
+							$folderRecords=buildSnapshotRecords($normalizedFolder,$insertTimestamp,$mode);
+							//echo "Found a good folder\n";
+							//var_dump($normalizedFolder);
+							foreach($folderRecords as $folderRecord){
+								$insertRecords[]=$folderRecord;
+							}
+						}
+					}
+				}
+				
+				
 			//builds the UNIX timestamp from the first line of the FAH file
 			}elseif(preg_match("/ PDT /",$line) OR preg_match("/ PST /",$line)){
 				$insertTimestamp=strtotime($line);
@@ -111,29 +143,10 @@ echo "script ran in $runTime secs.\n";
 
 
 function buildSnapshotRecords($normalizedFolder,$snapshotTimestamp,$mode){
-	if($normalizedFolder->assetName=="ALL"){
-		//this will snapshot the folder for every asset on the platform
-		foreach($platformAssets as $platformAsset){
-			$recordAsset=$platformAsset->assetName;
-			$thisSnapshotRecord=new snapshotRecord($recordAsset,$normalizedFolder,$snapshotTimestamp,$mode);
-			$snapshotRecords[]=$thisSnapshotRecord;
-		}
-	}elseif($normalizedFolder->assetName=="FLDC"){
-		//this will snapshot them if they opted for only FoldingCoin
-		$recordAsset="FLDC";
-		$thisSnapshotRecord=new snapshotRecord($recordAsset,$normalizedFolder,$snapshotTimestamp,$mode);
-		$snapshotRecords[]=$thisSnapshotRecord;
-	
-	}else{
-		//this will snapshot them for FoldingCoin...
-		$recordAsset="FLDC";
-		$thisSnapshotRecord=new snapshotRecord($recordAsset,$normalizedFolder,$snapshotTimestamp,$mode);
-		$snapshotRecords[]=$thisSnapshotRecord;
-		//...this will also snapshot them for the selected asset
-		$recordAsset=$normalizedFolder->assetName;
-		$thisSnapshotRecord=new snapshotRecord($recordAsset,$normalizedFolder,$snapshotTimestamp,$mode);
-		$snapshotRecords[]=$thisSnapshotRecord;
-	}
+	$snapshotRecords='';
+	$recordAsset=$normalizedFolder->assetName;
+	$thisSnapshotRecord=new snapshotRecord($recordAsset,$normalizedFolder,$snapshotTimestamp,$mode);
+	$snapshotRecords[]=$thisSnapshotRecord;
 	
 	return($snapshotRecords);
 }

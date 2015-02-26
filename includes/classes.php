@@ -1,6 +1,6 @@
 <?php
 //classes.php - class definitions for entire project
-//Copyrght © 2015 FoldingCoin Inc., All Rights Reserved
+//Copyright © 2015 FoldingCoin Inc., All Rights Reserved
 
 class platformAsset{
 	var $assetName;
@@ -100,8 +100,8 @@ class normalizedFolder{
 		$this->fahName=$name;
 		$this->fahTeam=$team;
 		$this->cumulativeCredits=$credits;
-		echo "for an ALL folder...\n";
-		var_dump($this);
+		//echo "for an ALL folder...\n";
+		//var_dump($this);
 	}
 	
 }

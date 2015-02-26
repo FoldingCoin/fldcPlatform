@@ -1,8 +1,8 @@
 <?php
 //snapshot.php - Store snapshot of Folding@home public stats
-//Copyrght © 2015 FoldingCoin Inc., All Rights Reserved
+//Copyright © 2015 FoldingCoin Inc., All Rights Reserved
 
-$projBase='/home/jsewell/foldingCoinPlatform/';
+$projBase='/home/fldcPlatform/mergedFolding/';
 $projBin='bin';
 
 include($projBase.$projBin.'/includes/functions.php');
@@ -23,7 +23,7 @@ if(preg_match("/test/",$mode)){
 }
 
 ///date debug
-//$todayYYYYMMDD=20150207;
+//$todayYYYYMMDD=20150216;
 ///date debug
 
 echo "run $todayYYYYMMDD\n";
@@ -109,6 +109,7 @@ while (!feof($bz)) {
 							//echo "Found a good folder\n";
 							//var_dump($normalizedFolder);
 							foreach($folderRecords as $folderRecord){
+								var_dump($folderRecord);
 								$insertRecords[]=$folderRecord;
 							}
 						}
@@ -157,6 +158,8 @@ function insertRecord($insertRecord){
 	//echo "$insertQuery;\n";
 	$db=dbConnect();
 	if ($stmt = $db->prepare("INSERT INTO fldcPlatform.platformCredits (snapshotTimestamp,assetName,snaptype,address,friendlyName,fahName,fahTeam,fahSHA256,cumulativeCredits,mode) VALUES (?,?,?,?,?,?,?,?,?,?)")) {
+		//var_dump($insertRecord);
+
 		/* bind parameters for markers */
 		$stmt->bind_param("isssssisis", $insertRecord->snapshotTimestamp,$insertRecord->assetName,$insertRecord->snaptype,$insertRecord->address,$insertRecord->friendlyName,$insertRecord->fahName,$insertRecord->fahTeam,$insertRecord->fahSHA256,$insertRecord->cumulativeCredits,$insertRecord->mode);
 		/* execute query */

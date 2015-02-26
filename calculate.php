@@ -1,8 +1,8 @@
 <?php
 //calculate.php - calculate fldcPlatform tokens for awarding each awarding period
-//Copyrght © 2015 FoldingCoin Inc., All Rights Reserved
+//Copyright © 2015 FoldingCoin Inc., All Rights Reserved
 
-$projBase='/home/jsewell/foldingCoinPlatform/';
+$projBase='/home/fldcPlatform/mergedFolding/';
 $projBin='bin';
 
 include($projBase.$projBin.'/includes/functions.php');
@@ -26,13 +26,12 @@ foreach($platformAssets as $platformAsset){
 	//echo "mostRecentSnapshot $mostRecentSnapshot ".date("c",$mostRecentSnapshot)."\n";
 	
 	///date debug
-	//$mostRecentSnapshot=1423286401;
+	//$mostRecentSnapshot=1423891201;
 	///date debug
 	
-	$payoutPlusMinus=$awardingPeriod/5400;
+	$payoutPlusMinus=5400;
 	$mostRecentPayout=getMostRecentPayout($assetName,$mode);
 	echo "mostRecentSnapshot $mostRecentSnapshot mostRecentPayout $mostRecentPayout\n";
-	//exit();
 
 /*
 
@@ -51,7 +50,8 @@ $mostRecentPayout<($mostRecentSnapshot-$payoutPlusMinus)
 		($mostRecentSnapshot>(($mostRecentPayout+$awardingPeriod)-$payoutPlusMinus))
 	){//THIS IS WHERE to check if the awarding period has gone by
 		$currentSnapRecords=populateCurrentSnapRecords($mostRecentSnapshot,$assetName,$mode);
-		//var_dump($currentSnapRecords);
+		echo "dumping current snap records\n";
+		var_dump($currentSnapRecords);
 		foreach($currentSnapRecords as $currentSnapRecord){
 			$normalizedFolder= new normalizedFolder();
 			$normalizedFolder->assetName=$currentSnapRecord->assetName;
@@ -62,6 +62,7 @@ $mostRecentPayout<($mostRecentSnapshot-$payoutPlusMinus)
 			$normalizedFolder->fahTeam=$currentSnapRecord->fahTeam;
 			$normalizedFolder->cumulativeCredits=$currentSnapRecord->cumulativeCredits;
 			$folderFahSHA256=$currentSnapRecord->fahSHA256;
+			$previousSnapRecord='';
 			$previousSnapRecord=getPreviousSnapRecord($folderFahSHA256,$assetName,$normalizedFolder,$mostRecentSnapshot,$awardingPeriod,$mode);
 			//echo "dumping currentSnapRecord\n";
 			//var_dump($currentSnapRecord);
@@ -120,6 +121,8 @@ foreach($csv as $assetName => $csvLines){
 		if ($assetEmailResults=$db->query($assetEmailQuery)) {
 			while($assetEmailRow=$assetEmailResults->fetch_assoc()){
 				$toEmail=$assetEmailRow['emailAddress'];
+				//override while running catch up days
+				//$toEmail="jsewell@foldingcoin.net";
 			}
 		}
 		$subject='';
@@ -130,12 +133,12 @@ foreach($csv as $assetName => $csvLines){
 				$toEmail=$assetEmailRow['emailAddress'];
 			}
 		}
-		
-		//$toEmail="jsewell@wcgwave.ca";
+		//if we're testing, override the email to just me, rather than DB
+		$toEmail="jsewell@foldingcoin.net";
 		$subject='Test Mode ';
 	}
 	
-	$subject = $subject."$assetName Merged Folding Production Daily Distribution ".date("c",$payoutTimestamp);
+	$subject = $subject."$assetName Merged Folding VPS Production Daily Distribution ".date("c",$payoutTimestamp);
 	$fromEmail = "jsewell@foldingcoin.net";
 	$headers = 'From: ' . $fromEmail . "\r\n" . 'X-Mailer: PHP/' . phpversion();
 	$headers .= 'MIME-Version: 1.0' . "\r\n";
@@ -177,6 +180,7 @@ function getPreviousSnapRecord($folderFahSHA256,$assetName,$normalizedFolder,$mo
 	//echo "previousTimestampStart $previousTimestampStart, previousTimestampEnd $previousTimestampEnd, endStartDiff $endStartDiff\n";
 	
 	$previousSnapRecord=new snapshotRecord($assetName,$normalizedFolder,$mostRecentSnapshot,$mode);
+	$previousSnapRecord->cumulativeCredits=0;
 	$db=dbConnect();
 	$previousSnapQuery="SELECT * FROM fldcPlatform.platformCredits WHERE fahSHA256 = '$folderFahSHA256' AND snapshotTimestamp > $previousTimestampStart AND snapshotTimestamp < $previousTimestampEnd AND assetName = '$assetName' AND mode = '$mode'";
 	//echo "$previousSnapQuery\n";

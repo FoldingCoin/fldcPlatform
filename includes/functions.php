@@ -1,6 +1,6 @@
 <?php
 //functions.php - basic utility functions for entire project
-//Copyrght © 2015 FoldingCoin Inc., All Rights Reserved
+//Copyright © 2015 FoldingCoin Inc., All Rights Reserved
 
 
 
@@ -49,7 +49,7 @@ function getMostRecentSnapshot($assetName,$mode){
 function populateCurrentSnapRecords($mostRecentSnapshot,$assetName,$mode){
 	$currentSnapRecords='';
 	$db=dbConnect();
-	$currentSnapQuery="SELECT * FROM fldcPlatform.platformCredits WHERE assetName = '$assetName' AND snapshotTimestamp = '$mostRecentSnapshot' AND mode = '$mode'";
+	$currentSnapQuery="SELECT * FROM fldcPlatform.platformCredits WHERE assetName = '$assetName' AND snapshotTimestamp = '$mostRecentSnapshot' AND mode = '$mode' ORDER BY cumulativeCredits DESC";
 	if ($currentSnapResults=$db->query($currentSnapQuery)) {
 		while($currentSnapRow=$currentSnapResults->fetch_assoc()){
 			$snaptype=$currentSnapRow['snaptype'];

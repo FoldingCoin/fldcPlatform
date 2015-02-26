@@ -1,11 +1,11 @@
 <?php
 //stats.php - Generate Payout Stats
-//Copyrght © 2015 FoldingCoin Inc., All Rights Reserved
+//Copyright © 2015 FoldingCoin Inc., All Rights Reserved
 
-$projBase='/home/jsewell/foldingCoinPlatform/';
+$projBase='/home/fldcPlatform/mergedFolding/';
 $projBin='bin';
 
-$reportsDir='/home/jsewell/public_html/platformReports/';
+$reportsDir='/var/www/html/platformReports/';
 
 include($projBase.$projBin.'/includes/functions.php');
 include($projBase.$projBin.'/includes/classes.php');
@@ -21,7 +21,7 @@ foreach($platformAssets as $platformAsset){
 	$assetName=$platformAsset->assetName;
 	$mostRecentSnapshot=getMostRecentSnapshot($assetName,$mode);
 	///
-	//$mostRecentSnapshot=1423286401;
+	//$mostRecentSnapshot=1424064001;
 	///
 	
 	$payoutRecords=populatePayoutRecords($assetName,$mostRecentSnapshot,$mode);
@@ -188,7 +188,7 @@ function createHtmlIndexes($platformAsset,$reportsDir){
 <body><h2>$assetName :: Distribution Summary</h2>
 <img src=$logoUrl>\n";
 
-	$files=scandir($reportsDir);
+	$files=scandir($reportsDir,1);
 	foreach($files as $file){
 		if(!is_dir($file) AND preg_match("/html/",$file) AND !preg_match("/reports/",$file) AND !preg_match("/index/",$file)){
 			$yyyy=substr($file,0,4);

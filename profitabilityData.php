@@ -5,7 +5,7 @@
 
 class profitabilityData{
 	var $credits='';
-	var $poloniexPrice='';
+	var $fldcPrice='';
 	var $btcPrice='';
 	var $fldcPerDay='';
 }
@@ -17,7 +17,6 @@ $statsUrl='http://stats.foldingcoin.net/platformReports/FLDC/stats.txt';
 $statsLines=file($statsUrl);
 foreach($statsLines as $statsLine){
 	list($statsHeading,$statsValue)=explode("|",$statsLine);
-	//change below when adding to new platform code, It's not "24 hr." but "Awarding Period"
 	if(preg_match("/Awarding Period/",$statsHeading)){
 		$periodCredits=$statsValue;
 		$periodCredits=preg_replace("/,/","",$periodCredits);
@@ -31,9 +30,32 @@ $poloniexTickerData=json_decode($poloniexTickerJson);
 foreach($poloniexTickerData as $poloniexTickerPair => $poloniexTickerResults){
 	if($poloniexTickerPair=="BTC_FLDC"){
 		$lastPoloniexPrice=$poloniexTickerResults->last;
+		$dailyPoloniexVolume=$poloniexTickerResults->baseVolume;
 		echo "lastPoloniexPrice $lastPoloniexPrice\n";
+		echo "dailyPoloniexVolume $dailyPoloniexVolume\n";
 	}
 }
+
+$bittrexTickerUrl='https://bittrex.com/api/v1.1/public/getmarketsummary?market=btc-fldc';
+$bittrexTickerJson=file_get_contents($bittrexTickerUrl);
+$bittrexTickerData=json_decode($bittrexTickerJson);
+$bittrexTickerDataResult=$bittrexTickerData->result;
+//var_dump($bittrexTickerDataResult);
+$lastBittrexPrice=$bittrexTickerDataResult[0]->Last;
+$dailyBittrexVolume=$bittrexTickerDataResult[0]->BaseVolume;
+echo "lastBittrexPrice $lastBittrexPrice\n";
+echo "dailyBittrexVolume $dailyBittrexVolume\n";
+
+
+$allExcahngesVolume=$dailyPoloniexVolume+$dailyBittrexVolume;
+$poloniexVolumeWeight=$dailyPoloniexVolume/$allExcahngesVolume;
+$bittrexVolumeWeight=$dailyBittrexVolume/$allExcahngesVolume;
+echo "poloniexVolumeWeight $poloniexVolumeWeight    bittrexVolumeWeight $bittrexVolumeWeight\n";
+
+$poloniexWeightedPrice=$poloniexVolumeWeight*$lastPoloniexPrice;
+$bittrexWeightedPrice=$bittrexVolumeWeight*$lastBittrexPrice;
+$fldcWeightedPrice=number_format($poloniexWeightedPrice+$bittrexWeightedPrice,8);
+echo "fldcWeightedPrice $fldcWeightedPrice\n";
 
 $blockchainTickerUrl='https://blockchain.info/ticker';
 $blockchainTickerJson=file_get_contents($blockchainTickerUrl);
@@ -50,7 +72,7 @@ foreach($blockchainTickerData as $blockchainTickerPair => $blockchainTickerResul
 
 $profitabilityData=new profitabilityData();
 $profitabilityData->credits=$periodCredits;
-$profitabilityData->poloniexPrice=$lastPoloniexPrice;
+$profitabilityData->fldcPrice=$fldcWeightedPrice;
 //change this on 
 $profitabilityData->fldcPerDay=500000;
 
